@@ -1,6 +1,7 @@
 import time
 from threading import local
 
+from django.db.models.signals import post_save, post_delete
 from django.core.signals import request_finished
 from django.core.cache import cache
 
@@ -51,6 +52,8 @@ class ModelDict(local):
         self.cache_key = 'ModelDict:%s:%s' % (model.__name__, key)
         self.last_updated_cache_key = 'ModelDict.last_updated:%s:%s' % (model.__name__, key)
         request_finished.connect(self._cleanup)
+        post_save.connect(self._post_save, sender=model)
+        post_delete.connect(self._post_delete, sender=model)
     
     # def __new__(cls, *args, **kwargs):
     #     self = super(ModelDict, cls).__new__(cls, *args, **kwargs)
@@ -84,6 +87,13 @@ class ModelDict(local):
     def __iter__(self):
         self._populate()
         return iter(self._cache)
+    
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__, self)
+
+    def __str__(self):
+        return ''
+        return ', '.join("%s=%s" % (k, v) for k, v in self.iteritems())
 
     def iteritems(self):
         self._populate()
@@ -121,6 +131,19 @@ class ModelDict(local):
             **{self.key: key}
         )
         self._populate(reset=True)
+
+    def _post_save(self, sender, instance, created, **kwargs):
+        if not self._cache:
+            self._populate()
+        if self.instances:
+            self._cache[getattr(instance, self.key)] = instance
+        else:
+            self._cache[getattr(instance, self.key)] = getattr(instance, self.value)
+        
+    def _post_delete(self, sender, instance, **kwargs):
+        if not self._cache:
+            return
+        self._cache.pop(getattr(instance, self.key), None)
 
     def _populate(self, reset=False):
         if reset:

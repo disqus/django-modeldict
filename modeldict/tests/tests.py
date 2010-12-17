@@ -31,8 +31,8 @@ class ModelDictTest(TransactionTestCase):
         self.assertEquals(ModelDictModel.objects.count(), base_count+1)
         
         ModelDictModel.objects.create(key='foo3', value='hello')
-        
-        self.assertRaises(KeyError, mydict.__getitem__, 'foo3')
+
+        self.assertEquals(mydict['foo3'], 'hello')
         self.assertTrue(ModelDictModel.objects.filter(key='foo3').exists(), True)
         self.assertEquals(ModelDictModel.objects.count(), base_count+2)
         
