@@ -21,7 +21,7 @@ Quick example usage. More docs to come (maybe?)::
 	
 	# fetch the current value using either method
 	Setting.objects.get(key='foo').value
-	>>> 'foo'
+	>>> 'hello'
 	
 	settings['foo']
-	>>> 'foo'
+	>>> 'hello'
