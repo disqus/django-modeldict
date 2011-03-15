@@ -24,7 +24,9 @@ setup(
     description = 'Stores a model as a dictionary',
     packages=find_packages(),
     zip_safe=False,
-    install_requires=[],
+    install_requires=[
+        'django',
+    ],
     test_suite = 'modeldict.tests',
     include_package_data=True,
     cmdclass={"test": mytest},
