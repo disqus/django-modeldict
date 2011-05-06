@@ -81,14 +81,19 @@ class ModelDict(local):
             defaults={self.value: value},
             **{self.key: key}
         )
+        
+        # Ensure we're updating the value in the database if it changes, and
+        # if it was frehsly created, we need to ensure we populate our cache.
         if getattr(instance, self.value) != value:
+            # post_save hook hits so we dont need to populate
             setattr(instance, self.value, value)
             instance.save()
-        self._populate(reset=True)
+        elif created:
+            self._populate(reset=True)
     
     def __delitem__(self, key):
-        self.model._default_manager.filter(**{self.key: key}).delete()
-        self._populate(reset=True)
+        affected = self.model._default_manager.filter(**{self.key: key}).delete()
+        # self._populate(reset=True)
     
     def __len__(self):
         if self._cache is None:
@@ -144,19 +149,21 @@ class ModelDict(local):
         self._populate(reset=True)
 
     def _post_save(self, sender, instance, created, **kwargs):
-        # HACK: Don't populate here since it will on __setitem__
         if self._cache is None:
-            self._cache = {}
+            self._populate()
         if self.instances:
-            self._cache[getattr(instance, self.key)] = instance
+            value = instance
         else:
-            self._cache[getattr(instance, self.key)] = getattr(instance, self.value)
+            value = getattr(instance, self.value)
+        key = getattr(instance, self.key)
+        if value != self._cache.get(key):
+            self._cache[key] = value
+        self._populate(reset=True)
         
     def _post_delete(self, sender, instance, **kwargs):
-        # HACK: Don't populate here since it will on __setitem__
-        if self._cache is None:
-            self._cache = {}
-        self._cache.pop(getattr(instance, self.key), None)
+        if self._cache:
+            self._cache.pop(getattr(instance, self.key), None)
+        self._populate(reset=True)
 
     def _populate(self, reset=False):
         if reset:
