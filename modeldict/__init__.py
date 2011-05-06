@@ -142,7 +142,7 @@ class ModelDict(local):
         
     def _post_delete(self, sender, instance, **kwargs):
         if not self._cache:
-            return
+            self._populate()
         self._cache.pop(getattr(instance, self.key), None)
 
     def _populate(self, reset=False):
