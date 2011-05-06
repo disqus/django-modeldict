@@ -9,6 +9,9 @@ class ModelDictTest(TransactionTestCase):
     # XXX: uses transaction test due to request_finished signal causing a rollback
     urls = 'modeldict.tests.urls'
     
+    def setUp(self):
+        cache.clear()
+    
     def test_api(self):
         base_count = ModelDictModel.objects.count()
         
@@ -100,6 +103,27 @@ class ModelDictTest(TransactionTestCase):
         self.assertEquals(mydict._cache, None)
         self.assertEquals(mydict['test_modeldict_expirey'], 'hello')
         self.assertEquals(len(mydict._cache), base_count + 1)
+
+    def test_modeldict_no_auto_create(self):
+        # without auto_create
+        mydict = ModelDict(ModelDictModel, key='key', value='value')
+        self.assertRaises(KeyError, lambda x: x['hello'], mydict)
+        self.assertEquals(ModelDictModel.objects.count(), 0)
+
+    def test_modeldict_auto_create_no_value(self):
+        # with auto_create and no value
+        mydict = ModelDict(ModelDictModel, key='key', value='value', auto_create=True)
+        repr(mydict['hello'])
+        self.assertEquals(ModelDictModel.objects.count(), 1)
+        self.assertEquals(ModelDictModel.objects.get(key='hello').value, '')
+
+    def test_modeldict_auto_create(self):
+        # with auto_create and value
+        mydict = ModelDict(ModelDictModel, key='key', value='value', auto_create=True)
+        mydict['hello'] = 'foo'
+        self.assertEquals(ModelDictModel.objects.count(), 1)
+        self.assertEquals(ModelDictModel.objects.get(key='hello').value, 'foo')
+
 
     # def test_modeldict_counts(self):
     #     # TODO: 

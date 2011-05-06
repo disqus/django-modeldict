@@ -21,6 +21,9 @@ class ModelDict(local):
     Specifying ``instances=True`` will cause the cache to store instances rather
     than simple values.
     
+    If ``auto_create=True`` accessing modeldict[key] when key does not exist will
+    attempt to create it in the database.
+    
     Functions in two different ways, depending on the constructor:
     
         # Given ``Model`` that has a column named ``foo`` where the value is "bar":
@@ -38,7 +41,7 @@ class ModelDict(local):
         >>> 'test'
     
     """
-    def __init__(self, model, key='pk', value=None, instances=False):
+    def __init__(self, model, key='pk', value=None, instances=False, auto_create=False):
         assert value is not None
 
         self._cache = None
@@ -48,6 +51,7 @@ class ModelDict(local):
         self.key = key
         self.value = value
         self.instances = instances
+        self.auto_create = auto_create
 
         self.cache_key = 'ModelDict:%s:%s' % (model.__name__, key)
         self.last_updated_cache_key = 'ModelDict.last_updated:%s:%s' % (model.__name__, key)
@@ -62,7 +66,13 @@ class ModelDict(local):
     
     def __getitem__(self, key):
         self._populate()
-        return self._cache[key]
+        try:
+            return self._cache[key]
+        except KeyError:
+            value = self.get_default(key)
+            if value is NoValue:
+                raise
+            return value
     
     def __setitem__(self, key, value):
         if isinstance(value, self.model):
@@ -178,3 +188,9 @@ class ModelDict(local):
     def _cleanup(self, *args, **kwargs):
         self._cache_stale = self._cache
         self._cache = None
+
+    def get_default(self, value):
+        if not self.auto_create:
+            return NoValue
+        return self.model.objects.create(**{self.key: value})
+        
