@@ -81,6 +81,8 @@ class ModelDict(local):
         self._populate(reset=True)
     
     def __len__(self):
+        if self._cache is None:
+            self._populate()
         return len(self._cache)
     
     def __contains__(self, key):
@@ -136,7 +138,7 @@ class ModelDict(local):
         self._populate(reset=True)
 
     def _post_save(self, sender, instance, created, **kwargs):
-        if not self._cache:
+        if self._cache is None:
             self._populate()
         if self.instances:
             self._cache[getattr(instance, self.key)] = instance
@@ -144,7 +146,7 @@ class ModelDict(local):
             self._cache[getattr(instance, self.key)] = getattr(instance, self.value)
         
     def _post_delete(self, sender, instance, **kwargs):
-        if not self._cache:
+        if self._cache is None:
             self._populate()
         self._cache.pop(getattr(instance, self.key), None)
 
