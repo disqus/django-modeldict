@@ -80,6 +80,9 @@ class ModelDict(local):
         self.model._default_manager.filter(**{self.key: key}).delete()
         self._populate(reset=True)
     
+    def __len__(self):
+        return len(self._cache)
+    
     def __contains__(self, key):
         self._populate()
         return key in self._cache
