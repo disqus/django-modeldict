@@ -19,7 +19,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     tests_require=[
-        'django',
+        'Django',
     ],
     test_suite = 'runtests.runtests',
     include_package_data=True,
