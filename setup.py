@@ -11,7 +11,7 @@ except ImportError:
 
 setup(
     name='django-modeldict',
-    version='1.1.2',
+    version='1.1.3',
     author='DISQUS',
     author_email='opensource@disqus.com',
     url='http://github.com/disqus/django-modeldict/',

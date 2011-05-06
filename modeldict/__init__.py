@@ -144,16 +144,18 @@ class ModelDict(local):
         self._populate(reset=True)
 
     def _post_save(self, sender, instance, created, **kwargs):
+        # HACK: Don't populate here since it will on __setitem__
         if self._cache is None:
-            self._populate()
+            self._cache = {}
         if self.instances:
             self._cache[getattr(instance, self.key)] = instance
         else:
             self._cache[getattr(instance, self.key)] = getattr(instance, self.value)
         
     def _post_delete(self, sender, instance, **kwargs):
+        # HACK: Don't populate here since it will on __setitem__
         if self._cache is None:
-            self._populate()
+            self._cache = {}
         self._cache.pop(getattr(instance, self.key), None)
 
     def _populate(self, reset=False):
