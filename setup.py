@@ -9,12 +9,6 @@ except ImportError:
     from setuptools import setup, find_packages
     from setuptools.command.test import test
 
-
-class mytest(test):
-    def run(self, *args, **kwargs):
-        from runtests import runtests
-        runtests()
-
 setup(
     name='django-modeldict',
     version='1.0.1',
@@ -24,12 +18,11 @@ setup(
     description = 'Stores a model as a dictionary',
     packages=find_packages(),
     zip_safe=False,
-    install_requires=[
+    tests_require=[
         'django',
     ],
-    test_suite = 'modeldict.tests',
+    test_suite = 'runtests.runtests',
     include_package_data=True,
-    cmdclass={"test": mytest},
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',

@@ -73,6 +73,10 @@ class ModelDictTest(TransactionTestCase):
         self.assertEquals(ModelDictModel.objects.values_list('value', flat=True).get(key='foo'), 'bar2')
         self.assertEquals(ModelDictModel.objects.count(), base_count+1)
 
+        # test deletion
+        mydict['foo'].delete()
+        self.assertTrue('foo' not in mydict)
+
     def test_modeldict_expirey(self):
         base_count = ModelDictModel.objects.count()
         
