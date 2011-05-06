@@ -104,11 +104,7 @@ class ModelDict(local):
         return iter(self._cache)
     
     def __repr__(self):
-        return "<%s: %s>" % (self.__class__.__name__, self)
-
-    def __str__(self):
-        return ''
-        return ', '.join("%s=%s" % (k, v) for k, v in self.iteritems())
+        return "<%s: %s>" % (self.__class__.__name__, self.model.__name__)
 
     def iteritems(self):
         self._populate()
