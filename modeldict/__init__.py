@@ -41,7 +41,7 @@ class ModelDict(local):
         >>> 'test'
     
     """
-    def __init__(self, model, key='pk', value=None, instances=False, auto_create=False):
+    def __init__(self, model, key='pk', value=None, instances=False, auto_create=False, cache=cache):
         assert value is not None
 
         self._cache = None
@@ -53,7 +53,8 @@ class ModelDict(local):
         self.value = value
         self.instances = instances
         self.auto_create = auto_create
-
+        self.cache = cache
+        
         self.cache_key = 'ModelDict:%s:%s' % (model.__name__, key)
         self.last_updated_cache_key = 'ModelDict.last_updated:%s:%s' % (model.__name__, key)
         request_finished.connect(self._cleanup)
@@ -172,12 +173,12 @@ class ModelDict(local):
             # TODO: Race condition in updating last_updated.  Needs
             # a test + fix.
             self.last_updated = int(time.time())
-            cache.set(self.last_updated_cache_key, self.last_updated)
+            self.cache.set(self.last_updated_cache_key, self.last_updated)
         elif self._cache is None:
-            new_last_updated = cache.get(self.last_updated_cache_key) or 0
+            new_last_updated = self.cache.get(self.last_updated_cache_key) or 0
             if new_last_updated > (self._last_updated or 0) or \
               not getattr(self, '_cache_stale', None):
-                self._cache = cache.get(self.cache_key)
+                self._cache = self.cache.get(self.cache_key)
                 self._last_updated = new_last_updated
             else:
                 self._cache = self._cache_stale
@@ -189,7 +190,7 @@ class ModelDict(local):
                 self._cache = dict((getattr(i, self.key), i) for i in qs.all())
             else:
                 self._cache = dict(qs.values_list(self.key, self.value))
-            cache.set(self.cache_key, self._cache)
+            self.cache.set(self.cache_key, self._cache)
         return self._cache    
 
     def _cleanup(self, *args, **kwargs):
