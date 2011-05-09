@@ -45,6 +45,7 @@ class ModelDict(local):
         assert value is not None
 
         self._cache = None
+        self._cache_stale = None
         self._last_updated = None
 
         self.model = model
@@ -181,6 +182,7 @@ class ModelDict(local):
             else:
                 self._cache = self._cache_stale
                 self._cache_stale = None
+
         if self._cache is None:
             qs = self.model._default_manager
             if self.instances:
@@ -193,6 +195,10 @@ class ModelDict(local):
     def _cleanup(self, *args, **kwargs):
         self._cache_stale = self._cache
         self._cache = None
+
+    def clear_cache(self):
+        self._cache = None
+        self._cache_stale = None
 
     def get_default(self, value):
         if not self.auto_create:
