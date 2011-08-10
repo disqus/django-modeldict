@@ -1,11 +1,10 @@
 import time
-from threading import local
 
 from django.core.cache import cache
 
 NoValue = object()
 
-class CachedDict(local):
+class CachedDict(object):
     def __init__(self, cache=cache):
         self._cache = None
         self._cache_stale = None
