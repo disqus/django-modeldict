@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 NoValue = object()
 
+
 class CachedDict(object):
     def __init__(self, cache=cache):
         self._cache = None
@@ -11,12 +12,12 @@ class CachedDict(object):
         self._last_updated = None
 
         self.cache = cache
-            
+
     # def __new__(cls, *args, **kwargs):
     #     self = super(ModelDict, cls).__new__(cls, *args, **kwargs)
     #     request_finished.connect(self._cleanup)
     #     return self
-    
+
     def __getitem__(self, key):
         self._populate()
         try:
@@ -29,15 +30,15 @@ class CachedDict(object):
 
     def __setitem__(self, key, value):
         raise NotImplementedError
-    
+
     def __delitem__(self, key):
         raise NotImplementedError
-        
+
     def __len__(self):
         if self._cache is None:
             self._populate()
         return len(self._cache)
-    
+
     def __contains__(self, key):
         self._populate()
         return key in self._cache
@@ -45,30 +46,30 @@ class CachedDict(object):
     def __iter__(self):
         self._populate()
         return iter(self._cache)
-    
+
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__, self.model.__name__)
 
     def iteritems(self):
         self._populate()
         return self._cache.iteritems()
-    
+
     def itervalues(self):
         self._populate()
         return self._cache.itervalues()
-    
+
     def iterkeys(self):
         self._populate()
         return self._cache.iterkeys()
-    
+
     def items(self):
         self._populate()
         return self._cache.items()
-        
+
     def get(self, key, default=None):
         self._populate()
         return self._cache.get(key, default)
-    
+
     def pop(self, key, default=NoValue):
         value = self.get(key, default)
         try:
@@ -101,7 +102,7 @@ class CachedDict(object):
         if self._cache is None:
             self._cache = self._get_cache_data()
             self.cache.set(self.cache_key, self._cache)
-        return self._cache    
+        return self._cache
 
     def _get_cache_data(self):
         raise NotImplementedError
@@ -116,4 +117,3 @@ class CachedDict(object):
 
     def get_default(self, value):
         return NoValue
-
