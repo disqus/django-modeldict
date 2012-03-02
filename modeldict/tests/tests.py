@@ -13,6 +13,12 @@ class ModelDictTest(TransactionTestCase):
     def setUp(self):
         cache.clear()
 
+    def assertHasReceiver(self, signal, function):
+        for ident, reciever in signal.receivers:
+            if reciever() is function:
+                return True
+        return False
+
     def test_api(self):
         base_count = ModelDictModel.objects.count()
 
@@ -151,6 +157,20 @@ class ModelDictTest(TransactionTestCase):
         self.assertEquals(len(mydict), 11)
         self.assertEquals(mydict['hello'], 'bar2')
 
+    def test_django_signals_are_connected(self):
+        from django.db.models.signals import post_save, post_delete
+        from django.core.signals import request_finished
+
+        mydict = ModelDict(ModelDictModel, key='key', value='value', auto_create=True)
+        self.assertHasReceiver(post_save, mydict._post_save)
+        self.assertHasReceiver(post_delete, mydict._post_delete)
+        self.assertHasReceiver(request_finished, mydict._cleanup)
+
+    def test_celery_signals_are_connected(self):
+        from celery.signals import task_postrun
+
+        mydict = ModelDict(ModelDictModel, key='key', value='value', auto_create=True)
+        self.assertHasReceiver(task_postrun, mydict._cleanup)
 
     # def test_modeldict_counts(self):
     #     # TODO:

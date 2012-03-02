@@ -13,6 +13,7 @@ setup(
     zip_safe=False,
     tests_require=[
         'Django',
+        'celery',
     ],
     test_suite = 'runtests.runtests',
     include_package_data=True,
