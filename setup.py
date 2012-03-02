@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 
-try:
-    from setuptools import setup, find_packages
-    from setuptools.command.test import test
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages
-    from setuptools.command.test import test
+from setuptools import setup, find_packages
 
 setup(
     name='django-modeldict',
-    version='1.1.6',
+    version='1.2.0',
     author='DISQUS',
     author_email='opensource@disqus.com',
     url='http://github.com/disqus/django-modeldict/',

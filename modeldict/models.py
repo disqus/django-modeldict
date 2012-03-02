@@ -4,6 +4,14 @@ from django.core.signals import request_finished
 from modeldict.base import CachedDict, NoValue
 
 
+try:
+    from celery.signals import task_postrun
+except ImportError:  # celery must not be installed
+    has_celery = False
+else:
+    has_celery = True
+
+
 class ModelDict(CachedDict):
     """
     Dictionary-style access to a model. Populates a cache and a local in-memory
@@ -50,6 +58,9 @@ class ModelDict(CachedDict):
         request_finished.connect(self._cleanup)
         post_save.connect(self._post_save, sender=model)
         post_delete.connect(self._post_delete, sender=model)
+
+        if has_celery:
+            task_postrun.connect(self._cleanup)
 
     def __setitem__(self, key, value):
         if isinstance(value, self.model):
