@@ -14,6 +14,7 @@ setup(
     tests_require=[
         'Django',
         'celery',
+        'django-nose',
     ],
     test_suite = 'runtests.runtests',
     include_package_data=True,

@@ -1,14 +1,16 @@
+from __future__ import absolute_import
+
 from django.core.cache import cache
 from django.core.signals import request_finished
 from django.test import TransactionTestCase
 
 from modeldict import ModelDict
-from modeldict.tests.models import ModelDictModel
+from .models import ModelDictModel
 
 
 class ModelDictTest(TransactionTestCase):
     # XXX: uses transaction test due to request_finished signal causing a rollback
-    urls = 'modeldict.tests.urls'
+    urls = 'tests.modeldict.urls'
 
     def setUp(self):
         cache.clear()
