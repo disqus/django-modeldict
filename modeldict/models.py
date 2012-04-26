@@ -15,7 +15,7 @@ else:
 class ModelDict(CachedDict):
     """
     Dictionary-style access to a model. Populates a cache and a local in-memory
-    to avoid multiple hits to the database.
+    store to avoid multiple hits to the database.
 
     Specifying ``instances=True`` will cause the cache to store instances rather
     than simple values.
