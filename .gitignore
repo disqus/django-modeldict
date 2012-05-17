@@ -1,4 +1,13 @@
+.DS_Store
+.coverage
+.tox
 *.pyc
-*.egg-info/
-build/
-dist/
+*.log
+*.egg
+*.db
+*.pid
+pip-log.txt
+/cover
+/build
+/dist
+/*.egg-info
