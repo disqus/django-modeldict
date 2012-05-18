@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+import mock
+import time
+
 from django.core.cache import cache
 from django.core.signals import request_finished
-from django.test import TransactionTestCase
+from django.test import TestCase, TransactionTestCase
 
 from modeldict import ModelDict
+from modeldict.base import CachedDict
 from .models import ModelDictModel
 
 
@@ -174,6 +178,7 @@ class ModelDictTest(TransactionTestCase):
         mydict = ModelDict(ModelDictModel, key='key', value='value', auto_create=True)
         self.assertHasReceiver(task_postrun, mydict._cleanup)
 
+
     # def test_modeldict_counts(self):
     #     # TODO:
     #     mydict = ModelDict(ModelDictModel, key='key', value='value')
@@ -196,3 +201,35 @@ class ModelDictTest(TransactionTestCase):
     #
     #     self.assertEqual(cache._gets[c.get_key('ModelDict:ModelDictModel:key')], 1)
     #     self.assertEqual(cache._gets[c.get_key('ModelDict.last_updated:ModelDictModel:key')], 2)
+
+
+class CachedDictTest(TestCase):
+    @mock.patch('modeldict.base.CachedDict._update_cache_data')
+    @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=True))
+    def test_expired_does_update_data(self, _update_cache_data):
+        mydict = CachedDict()
+        mydict._cache = {}
+        mydict._last_updated = time.time()
+        mydict._populate()
+
+        _update_cache_data.assert_called_once_with()
+
+    @mock.patch('modeldict.base.CachedDict._update_cache_data')
+    @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=False))
+    def test_reset_does_expire(self, _update_cache_data):
+        mydict = CachedDict(timeout=100)
+        mydict._cache = {}
+        mydict._last_updated = time.time()
+        mydict._populate(reset=True)
+
+        _update_cache_data.assert_called_once_with()
+
+    @mock.patch('modeldict.base.CachedDict._update_cache_data')
+    @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=False))
+    def test_does_not_expire_by_default(self, _update_cache_data):
+        mydict = CachedDict(timeout=100)
+        mydict._cache = {}
+        mydict._last_updated = time.time()
+        mydict._populate()
+
+        self.assertFalse(_update_cache_data.called)
