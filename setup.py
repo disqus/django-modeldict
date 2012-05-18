@@ -6,6 +6,7 @@ tests_require = [
     'Django',
     'celery',
     'django-nose==1.0',
+    'mock==0.8.0',
     'nose==1.1.2',
     'pyflakes',
     'pep8',

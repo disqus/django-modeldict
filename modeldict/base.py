@@ -6,12 +6,16 @@ NoValue = object()
 
 
 class CachedDict(object):
-    def __init__(self, cache=cache):
+    def __init__(self, cache=cache, timeout=30):
+        cls_name = type(self).__name__
+
         self._cache = None
         self._cache_stale = None
         self._last_updated = None
-
+        self.timeout = timeout
         self.cache = cache
+        self.cache_key = cls_name
+        self.last_updated_cache_key = '%s.last_updated' % (cls_name,)
 
     # def __new__(cls, *args, **kwargs):
     #     self = super(ModelDict, cls).__new__(cls, *args, **kwargs)
@@ -82,14 +86,13 @@ class CachedDict(object):
         if key not in self:
             self[key] = value
 
+    def is_expired(self):
+        return self._last_updated and (time.time() + self.timeout) > self._last_updated
+
     def _populate(self, reset=False):
         if reset:
             self._cache = None
-            # TODO: Race condition in updating last_updated.  Needs
-            # a test + fix.
-            self.last_updated = int(time.time())
-            self.cache.set(self.last_updated_cache_key, self.last_updated)
-        elif self._cache is None:
+        elif self._cache is None or self.is_expired():
             new_last_updated = self.cache.get(self.last_updated_cache_key) or 0
             if new_last_updated > (self._last_updated or 0) or \
               not getattr(self, '_cache_stale', None):
@@ -100,9 +103,14 @@ class CachedDict(object):
                 self._cache_stale = None
 
         if self._cache is None:
-            self._cache = self._get_cache_data()
-            self.cache.set(self.cache_key, self._cache)
+            self._update_cache_data()
         return self._cache
+
+    def _update_cache_data(self):
+        self._cache = self._get_cache_data()
+        self._last_updated = int(time.time())
+        self.cache.set(self.cache_key, self._cache)
+        self.cache.set(self.last_updated_cache_key, self._last_updated)
 
     def _get_cache_data(self):
         raise NotImplementedError
