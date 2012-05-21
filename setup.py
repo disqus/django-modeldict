@@ -23,11 +23,11 @@ dependency_links = [
 
 setup(
     name='django-modeldict',
-    version='1.2.0',
+    version='1.3.0',
     author='DISQUS',
     author_email='opensource@disqus.com',
     url='http://github.com/disqus/django-modeldict/',
-    description = 'Stores a model as a dictionary',
+    description='Stores a model as a dictionary',
     packages=find_packages(),
     zip_safe=False,
     tests_require=tests_require,
