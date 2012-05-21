@@ -2,6 +2,11 @@
 
 from setuptools import setup, find_packages
 
+try:
+    import multiprocessing
+except:
+    pass
+
 tests_require = [
     'Django',
     'celery',
