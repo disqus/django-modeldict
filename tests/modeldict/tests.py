@@ -233,3 +233,18 @@ class CachedDictTest(TestCase):
         mydict._populate()
 
         self.assertFalse(_update_cache_data.called)
+
+    def test_is_expired_missing_last_updated(self):
+        mydict = CachedDict(timeout=100)
+        mydict._last_updated = None
+        self.assertTrue(mydict.is_expired())
+
+    def test_is_expired_last_updated_beyond_timeout(self):
+        mydict = CachedDict(timeout=100)
+        mydict._last_updated = time.time() - 101
+        self.assertTrue(mydict.is_expired())
+
+    def test_is_expired_within_bounds(self):
+        mydict = CachedDict(timeout=100)
+        mydict._last_updated = time.time()
+        self.assertFalse(mydict.is_expired())
