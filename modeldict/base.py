@@ -87,7 +87,11 @@ class CachedDict(object):
             self[key] = value
 
     def is_expired(self):
-        return self._last_updated and (time.time() + self.timeout) > self._last_updated
+        if not self._last_updated:
+            return True
+        if time.time() > self._last_updated + self.timeout:
+            return True
+        return False
 
     def _populate(self, reset=False):
         if reset:
