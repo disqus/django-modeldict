@@ -10,17 +10,11 @@ class CachedDict(object):
         cls_name = type(self).__name__
 
         self._cache = None
-        self._cache_stale = None
         self._last_updated = None
         self.timeout = timeout
         self.cache = cache
         self.cache_key = cls_name
         self.last_updated_cache_key = '%s.last_updated' % (cls_name,)
-
-    # def __new__(cls, *args, **kwargs):
-    #     self = super(ModelDict, cls).__new__(cls, *args, **kwargs)
-    #     request_finished.connect(self._cleanup)
-    #     return self
 
     def __getitem__(self, key):
         self._populate()
@@ -66,6 +60,12 @@ class CachedDict(object):
         self._populate()
         return self._cache.iterkeys()
 
+    def keys(self):
+        return list(self.iterkeys())
+
+    def values(self):
+        return list(self.itervalues())
+
     def items(self):
         self._populate()
         return self._cache.items()
@@ -94,17 +94,13 @@ class CachedDict(object):
         return False
 
     def _populate(self, reset=False):
+        self.cache.get(self.last_updated_cache_key)
         if reset:
             self._cache = None
         elif self._cache is None or self.is_expired():
             new_last_updated = self.cache.get(self.last_updated_cache_key) or 0
-            if new_last_updated > (self._last_updated or 0) or \
-              not getattr(self, '_cache_stale', None):
-                self._cache = self.cache.get(self.cache_key)
-                self._last_updated = new_last_updated
-            else:
-                self._cache = self._cache_stale
-                self._cache_stale = None
+            self._cache = self.cache.get(self.cache_key)
+            self._last_updated = new_last_updated
 
         if self._cache is None:
             self._update_cache_data()
@@ -120,12 +116,10 @@ class CachedDict(object):
         raise NotImplementedError
 
     def _cleanup(self, *args, **kwargs):
-        self._cache_stale = self._cache
         self._cache = None
 
     def clear_cache(self):
         self._cache = None
-        self._cache_stale = None
 
     def get_default(self, value):
         return NoValue

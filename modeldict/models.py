@@ -58,7 +58,7 @@ class ModelDict(CachedDict):
         self.cache_key = '%s:%s:%s' % (cls_name, model_name, self.key)
         self.last_updated_cache_key = '%s.last_updated:%s:%s' % (cls_name, model_name, self.key)
 
-        request_finished.connect(self._cleanup)
+        request_finished.connect(self._cleanup, weak=False)
         post_save.connect(self._post_save, sender=model)
         post_delete.connect(self._post_delete, sender=model)
 
