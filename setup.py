@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 try:
-    import multiprocessing
+    import multiprocessing  # NOQA
 except:
     pass
 
@@ -23,7 +23,7 @@ dependency_links = [
 
 setup(
     name='django-modeldict',
-    version='1.3.1',
+    version='1.3.2',
     author='DISQUS',
     author_email='opensource@disqus.com',
     url='http://github.com/disqus/django-modeldict/',
