@@ -94,13 +94,11 @@ class CachedDict(object):
         return False
 
     def _populate(self, reset=False):
-        self.cache.get(self.last_updated_cache_key)
         if reset:
             self._cache = None
         elif self._cache is None or self.is_expired():
-            new_last_updated = self.cache.get(self.last_updated_cache_key) or 0
             self._cache = self.cache.get(self.cache_key)
-            self._last_updated = new_last_updated
+            self._last_updated = time.time()
 
         if self._cache is None:
             self._update_cache_data()
