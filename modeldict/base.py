@@ -102,7 +102,7 @@ class CachedDict(object):
 
     def is_cache_stale(self):
         """
-        Returns ``True`` if the in-memory cache stale and should be
+        Returns ``True`` if the in-memory cache is stale and should be
         re-fetched.
         """
         last_updated = self.cache.get(self.last_updated_cache_key)
