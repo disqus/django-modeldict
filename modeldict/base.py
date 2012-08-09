@@ -86,6 +86,9 @@ class CachedDict(object):
         if key not in self:
             self[key] = value
 
+    def get_default(self, value):
+        return NoValue
+
     def is_expired(self):
         """
         Returns ``True`` if the in-memory cache has expired (based on
@@ -109,6 +112,19 @@ class CachedDict(object):
             return True
         return False
 
+    def get_cache_data(self):
+        """
+        Pulls data from the cache backend.
+        """
+        return self._get_cache_data()
+
+    def clear_cache(self):
+        """
+        Clears the in-process cache.
+        """
+        self._cache = None
+        self._last_updated = None
+
     def _populate(self, reset=False):
         if reset:
             self._cache = None
@@ -120,24 +136,15 @@ class CachedDict(object):
         return self._cache
 
     def _update_cache_data(self):
-        self._cache = self._get_cache_data()
+        self._cache = self.get_cache_data()
         self._last_updated = int(time.time())
         self.cache.set(self.cache_key, self._cache)
         self.cache.set(self.last_updated_cache_key, self._last_updated)
 
     def _get_cache_data(self):
-        """
-        Pulls data from the cache backend.
-        """
         raise NotImplementedError
 
     def _cleanup(self, *args, **kwargs):
         # We _last_updated to a false value to ensure we hit the last_updated cache
         # on the next request
         self._last_updated = None
-
-    def clear_cache(self):
-        self._cache = None
-
-    def get_default(self, value):
-        return NoValue
