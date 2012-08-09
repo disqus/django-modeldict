@@ -54,7 +54,7 @@ class ModelDictTest(TransactionTestCase):
 
         request_finished.send(sender=self)
 
-        self.assertEquals(mydict._cache, None)
+        self.assertEquals(mydict._last_updated, None)
 
         # These should still error because even though the cache repopulates (local cache)
         # the remote cache pool does not
@@ -107,13 +107,13 @@ class ModelDictTest(TransactionTestCase):
 
         self.client.get('/')
 
-        self.assertEquals(mydict._cache, None)
+        self.assertEquals(mydict._last_updated, None)
         self.assertEquals(mydict['test_modeldict_expirey'], 'hello')
         self.assertEquals(len(mydict._cache), base_count + 1)
 
         request_finished.send(sender=self)
 
-        self.assertEquals(mydict._cache, None)
+        self.assertEquals(mydict._last_updated, None)
         self.assertEquals(mydict['test_modeldict_expirey'], 'hello')
         self.assertEquals(len(mydict._cache), base_count + 1)
 
