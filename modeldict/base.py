@@ -94,22 +94,21 @@ class CachedDict(object):
         Returns ``True`` if the in-memory cache has expired (based on
         the cached last_updated value).
         """
-        if not self._last_updated:
+        proc_last_updated = self._last_updated
+        if not proc_last_updated:
             return True
-        if time.time() > self._last_updated + self.timeout:
-            return True
-        return False
 
-    def is_cache_stale(self):
-        """
-        Returns ``True`` if the in-memory cache is stale and should be
-        re-fetched.
-        """
-        last_updated = self.cache.get(self.last_updated_cache_key)
-        if not last_updated:
+        # We bail early to avoid hammering the last_updated cache
+        if time.time() < proc_last_updated + self.timeout:
+            return False
+
+        cache_last_updated = self.cache.get(self.last_updated_cache_key)
+        if not cache_last_updated:
             return True
-        elif last_updated < time.time():
+
+        if cache_last_updated > proc_last_updated:
             return True
+
         return False
 
     def get_cache_data(self):
@@ -128,7 +127,7 @@ class CachedDict(object):
     def _populate(self, reset=False):
         if reset:
             self._cache = None
-        elif self.is_expired() and self.is_cache_stale():
+        elif self.is_expired():
             self._cache = None
 
         if self._cache is None:
