@@ -238,6 +238,7 @@ class CachedDictTest(TestCase):
     def test_is_expired_missing_last_updated(self):
         self.mydict._last_updated = None
         self.assertTrue(self.mydict.is_expired())
+        self.assertFalse(self.cache.get.called)
 
     def test_is_expired_last_updated_beyond_timeout(self):
         self.mydict._last_updated = time.time() - 101
@@ -245,7 +246,6 @@ class CachedDictTest(TestCase):
 
     def test_is_expired_within_bounds(self):
         self.mydict._last_updated = time.time()
-        self.assertFalse(self.mydict.is_expired())
 
     def test_is_not_expired_if_remote_cache_is_old(self):
         # set it to an expired time
