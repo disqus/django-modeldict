@@ -201,6 +201,15 @@ class CacheIntegrationTest(TestCase):
         self.cache.set.assert_any_call(self.mydict.cache_key, {u'hello': u'bar'})
         self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
 
+    def test_switch_delete(self):
+        self.mydict['hello'] = 'foo'
+        self.cache.reset_mock()
+        del self.mydict['hello']
+        self.assertEquals(self.cache.get.call_count, 0)
+        self.assertEquals(self.cache.set.call_count, 2)
+        self.cache.set.assert_any_call(self.mydict.cache_key, {})
+        self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
+
     def test_switch_access(self):
         self.mydict['hello'] = 'foo'
         self.cache.reset_mock()
@@ -253,7 +262,7 @@ class CachedDictTest(TestCase):
         self.mydict._last_updated = time.time()
         self.mydict._populate()
 
-        _update_cache_data.assert_called_once_with()
+        self.assertFalse(_update_cache_data.called)
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
     @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=False))
