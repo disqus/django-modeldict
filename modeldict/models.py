@@ -98,6 +98,8 @@ class ModelDict(CachedDict):
         if not self.auto_create:
             return NoValue
         result = self.model.objects.get_or_create(**{self.key: key})[0]
+        if self.instances:
+            return result
         return getattr(result, self.value)
 
     def _get_cache_data(self):
