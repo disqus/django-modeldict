@@ -86,7 +86,7 @@ class CachedDict(object):
         if key not in self:
             self[key] = value
 
-    def get_default(self, value):
+    def get_default(self, key):
         return NoValue
 
     def is_expired(self):
@@ -128,7 +128,11 @@ class CachedDict(object):
         if reset:
             self._cache = None
         elif self.is_expired():
-            self._cache = None
+            # pull it down from the cache if its expired
+            self._cache = self.cache.get(self.cache_key)
+            if self._cache is not None:
+                self._last_updated = int(time.time())
+                self.cache.set(self.last_updated_cache_key, self._last_updated)
 
         if self._cache is None:
             self._update_cache_data()

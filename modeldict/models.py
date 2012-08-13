@@ -68,19 +68,18 @@ class ModelDict(CachedDict):
     def __setitem__(self, key, value):
         if isinstance(value, self.model):
             value = getattr(value, self.value)
-        instance, created = self.model._default_manager.get_or_create(
+
+        manager = self.model._default_manager
+        instance, created = manager.get_or_create(
             defaults={self.value: value},
             **{self.key: key}
         )
 
-        # Ensure we're updating the value in the database if it changes, and
-        # if it was frehsly created, we need to ensure we populate our cache.
+        # Ensure we're updating the value in the database if it changes
         if getattr(instance, self.value) != value:
-            # post_save hook hits so we dont need to populate
             setattr(instance, self.value, value)
-            instance.save()
-        elif created:
-            self._populate(reset=True)
+            manager.filter(**{self.key: key}).update(**{self.value: value})
+            self._post_save(sender=self.model, instance=instance, created=False)
 
     def __delitem__(self, key):
         self.model._default_manager.filter(**{self.key: key}).delete()
@@ -89,16 +88,17 @@ class ModelDict(CachedDict):
     def setdefault(self, key, value):
         if isinstance(value, self.model):
             value = getattr(value, self.value)
+
         instance, created = self.model._default_manager.get_or_create(
             defaults={self.value: value},
             **{self.key: key}
         )
-        self._populate(reset=True)
 
-    def get_default(self, value):
+    def get_default(self, key):
         if not self.auto_create:
             return NoValue
-        return self.model.objects.create(**{self.key: value})
+        result = self.model.objects.get_or_create(**{self.key: key})[0]
+        return getattr(result, self.value)
 
     def _get_cache_data(self):
         qs = self.model._default_manager
@@ -109,18 +109,7 @@ class ModelDict(CachedDict):
     # Signals
 
     def _post_save(self, sender, instance, created, **kwargs):
-        if self._cache is None:
-            self._populate()
-        if self.instances:
-            value = instance
-        else:
-            value = getattr(instance, self.value)
-        key = getattr(instance, self.key)
-        if value != self._cache.get(key):
-            self._cache[key] = value
         self._populate(reset=True)
 
     def _post_delete(self, sender, instance, **kwargs):
-        if self._cache:
-            self._cache.pop(getattr(instance, self.key), None)
         self._populate(reset=True)

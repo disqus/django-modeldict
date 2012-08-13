@@ -179,28 +179,66 @@ class ModelDictTest(TransactionTestCase):
         self.assertHasReceiver(task_postrun, mydict._cleanup)
 
 
-    # def test_modeldict_counts(self):
-    #     # TODO:
-    #     mydict = ModelDict(ModelDictModel, key='key', value='value')
-    #     mydict['test_1'] = 'foo'
-    #     mydict['test_2'] = 'bar'
-    #     del mydict
-    #     request_finished.send(sender=self)
-    #
-    #     mydict = ModelDict(ModelDictModel, key='key', value='value')
-    #     # First and only cache.get() here.
-    #     self.assertEqual(mydict['test_1'], 'foo')
-    #     self.assertEqual(mydict['test_2'], 'bar')
-    #     self.assertEqual(mydict['test_1'], 'foo')
-    #
-    #     request_finished.send(sender=self)
-    #     # Should not be another cache.get().
-    #     self.assertEqual(mydict['test_1'], 'foo')
-    #     self.assertEqual(mydict['test_2'], 'bar')
-    #     self.assertEqual(mydict['test_1'], 'foo')
-    #
-    #     self.assertEqual(cache._gets[c.get_key('ModelDict:ModelDictModel:key')], 1)
-    #     self.assertEqual(cache._gets[c.get_key('ModelDict.last_updated:ModelDictModel:key')], 2)
+class CacheIntegrationTest(TestCase):
+    def setUp(self):
+        self.cache = mock.Mock()
+        self.cache.get.return_value = {}
+        self.mydict = ModelDict(ModelDictModel, key='key', value='value', auto_create=True, cache=self.cache)
+
+    def test_switch_creation(self):
+        self.mydict['hello'] = 'foo'
+        self.assertEquals(self.cache.get.call_count, 0)
+        self.assertEquals(self.cache.set.call_count, 2)
+        self.cache.set.assert_any_call(self.mydict.cache_key, {u'hello': u'foo'})
+        self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
+
+    def test_switch_change(self):
+        self.mydict['hello'] = 'foo'
+        self.cache.reset_mock()
+        self.mydict['hello'] = 'bar'
+        self.assertEquals(self.cache.get.call_count, 0)
+        self.assertEquals(self.cache.set.call_count, 2)
+        self.cache.set.assert_any_call(self.mydict.cache_key, {u'hello': u'bar'})
+        self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
+
+    def test_switch_access(self):
+        self.mydict['hello'] = 'foo'
+        self.cache.reset_mock()
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        self.assertEquals(foo, 'foo')
+        self.assertEquals(self.cache.get.call_count, 0)
+        self.assertEquals(self.cache.set.call_count, 0)
+
+    def test_switch_access_without_cache(self):
+        self.mydict['hello'] = 'foo'
+        self.mydict._cache = None
+        self.mydict._last_updated = None
+        self.cache.reset_mock()
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        self.assertEquals(foo, 'foo')
+        self.assertEquals(self.cache.get.call_count, 1)
+        self.assertEquals(self.cache.set.call_count, 1)
+        self.cache.get.assert_any_call(self.mydict.cache_key)
+        self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
+
+    def test_switch_access_with_expired_cache(self):
+        self.mydict['hello'] = 'foo'
+        self.mydict._last_updated = None
+        self.cache.reset_mock()
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        self.assertEquals(foo, 'foo')
+        self.assertEquals(self.cache.get.call_count, 1)
+        self.assertEquals(self.cache.set.call_count, 1)
+        self.cache.get.assert_any_call(self.mydict.cache_key)
+        self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
 
 
 class CachedDictTest(TestCase):
