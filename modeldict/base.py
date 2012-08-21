@@ -102,6 +102,8 @@ class CachedDict(object):
         if time.time() > proc_last_updated + self.timeout:
             return True
 
+        return False
+
     def is_global_expired(self):
         cache_last_updated = self.cache.get(self.last_updated_cache_key)
         if not cache_last_updated:
