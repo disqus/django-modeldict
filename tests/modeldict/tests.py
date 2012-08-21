@@ -245,9 +245,8 @@ class CacheIntegrationTest(TestCase):
         self.cache.reset_mock()
         foo = self.mydict['hello']
         self.assertEquals(foo, 'foo')
-        self.assertEquals(self.cache.get.call_count, 2)
+        self.assertEquals(self.cache.get.call_count, 1)
         self.assertEquals(self.cache.set.call_count, 0)
-        self.cache.get.assert_any_call(self.mydict.cache_key)
         self.cache.get.assert_any_call(self.mydict.last_updated_cache_key)
         self.cache.reset_mock()
         foo = self.mydict['hello']
@@ -263,7 +262,7 @@ class CachedDictTest(TestCase):
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
     @mock.patch('modeldict.base.CachedDict.is_local_expired', mock.Mock(return_value=True))
-    @mock.patch('modeldict.base.CachedDict.is_global_expired', mock.Mock(return_value=False))
+    @mock.patch('modeldict.base.CachedDict.has_global_changed', mock.Mock(return_value=False))
     def test_expired_does_update_data(self, _update_cache_data):
         self.mydict._cache = {}
         self.mydict._last_updated = time.time()
@@ -273,7 +272,7 @@ class CachedDictTest(TestCase):
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
     @mock.patch('modeldict.base.CachedDict.is_local_expired', mock.Mock(return_value=False))
-    @mock.patch('modeldict.base.CachedDict.is_global_expired', mock.Mock(return_value=True))
+    @mock.patch('modeldict.base.CachedDict.has_global_changed', mock.Mock(return_value=True))
     def test_reset_does_expire(self, _update_cache_data):
         self.mydict._cache = {}
         self.mydict._last_updated = time.time()
@@ -283,7 +282,7 @@ class CachedDictTest(TestCase):
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
     @mock.patch('modeldict.base.CachedDict.is_local_expired', mock.Mock(return_value=False))
-    @mock.patch('modeldict.base.CachedDict.is_global_expired', mock.Mock(return_value=True))
+    @mock.patch('modeldict.base.CachedDict.has_global_changed', mock.Mock(return_value=True))
     def test_does_not_expire_by_default(self, _update_cache_data):
         self.mydict._cache = {}
         self.mydict._last_updated = time.time()
@@ -308,17 +307,17 @@ class CachedDictTest(TestCase):
         self.mydict._last_updated = time.time() - 101
         self.cache.get.return_value = self.mydict._last_updated
 
-        result = self.mydict.is_global_expired()
+        result = self.mydict.has_global_changed()
 
         self.cache.get.assert_called_once_with(self.mydict.last_updated_cache_key)
-        self.assertFalse(result)
+        self.assertEquals(result, False)
 
     def test_is_expired_if_remote_cache_is_new(self):
         # set it to an expired time
         self.mydict._last_updated = time.time() - 101
         self.cache.get.return_value = time.time()
 
-        result = self.mydict.is_global_expired()
+        result = self.mydict.has_global_changed()
 
         self.cache.get.assert_called_once_with(self.mydict.last_updated_cache_key)
-        self.assertTrue(result)
+        self.assertEquals(result, True)

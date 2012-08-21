@@ -104,12 +104,12 @@ class CachedDict(object):
 
         return False
 
-    def is_global_expired(self):
+    def has_global_changed(self):
         cache_last_updated = self.cache.get(self.last_updated_cache_key)
         if not cache_last_updated:
-            return True
+            return None
 
-        if cache_last_updated > self._last_updated:
+        if int(cache_last_updated) > self._last_updated:
             return True
 
         return False
@@ -144,10 +144,15 @@ class CachedDict(object):
             self._cache = None
         elif self.is_local_expired():
             now = int(time.time())
+            global_changed = self.has_global_changed()
             # If the cache is expired globally, or local cache isnt present
-            if self.is_global_expired() or self._cache is None:
+            if global_changed or self._cache is None:
                 # The value may or may not exist in the cache
                 self._cache = self.cache.get(self.cache_key)
+                if global_changed is None and self._cache is not None:
+                    # If for some reason last_updated_cache_key was None (but the cache key wasnt)
+                    # we should force the key to exist to prevent continuous calls
+                    self.cache.add(self.last_updated_cache_key, now)
             self._last_updated = now
 
         if self._cache is None:
