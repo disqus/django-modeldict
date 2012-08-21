@@ -144,10 +144,7 @@ class CachedDict(object):
             now = int(time.time())
             # If the cache is expired globally, or local cache isnt present
             if self.is_global_expired() or self._cache is None:
-                # It's important that we prevent other processes from being
-                # required to pull from the cache if they just updated
-                # and it hasnt changed
-                self.cache.set(self.last_updated_cache_key, now)
+                # The value may or may not exist in the cache
                 self._cache = self.cache.get(self.cache_key)
             self._last_updated = now
 
@@ -159,6 +156,8 @@ class CachedDict(object):
         self._cache = self.get_cache_data()
         self._last_updated = int(time.time())
         # We only set last_updated_cache_key when we know the cache is current
+        # because setting this will force all clients to invalidate their cached
+        # data if it's newer
         self.cache.set(self.cache_key, self._cache)
         self.cache.set(self.last_updated_cache_key, self._last_updated)
 
