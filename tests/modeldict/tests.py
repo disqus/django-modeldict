@@ -227,27 +227,35 @@ class CacheIntegrationTest(TestCase):
         self.mydict._last_updated = None
         self.cache.reset_mock()
         foo = self.mydict['hello']
-        foo = self.mydict['hello']
-        foo = self.mydict['hello']
-        foo = self.mydict['hello']
         self.assertEquals(foo, 'foo')
-        self.assertEquals(self.cache.get.call_count, 1)
+        self.assertEquals(self.cache.get.call_count, 2)
         self.assertEquals(self.cache.set.call_count, 1)
         self.cache.get.assert_any_call(self.mydict.cache_key)
+        self.cache.get.assert_any_call(self.mydict.last_updated_cache_key)
         self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
+        self.cache.reset_mock()
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        self.assertEquals(self.cache.get.call_count, 0)
+        self.assertEquals(self.cache.set.call_count, 0)
 
     def test_switch_access_with_expired_cache(self):
         self.mydict['hello'] = 'foo'
         self.mydict._last_updated = None
         self.cache.reset_mock()
         foo = self.mydict['hello']
-        foo = self.mydict['hello']
-        foo = self.mydict['hello']
         self.assertEquals(foo, 'foo')
-        self.assertEquals(self.cache.get.call_count, 1)
+        self.assertEquals(self.cache.get.call_count, 2)
         self.assertEquals(self.cache.set.call_count, 1)
         self.cache.get.assert_any_call(self.mydict.cache_key)
+        self.cache.get.assert_any_call(self.mydict.last_updated_cache_key)
         self.cache.set.assert_any_call(self.mydict.last_updated_cache_key, self.mydict._last_updated)
+        self.cache.reset_mock()
+        foo = self.mydict['hello']
+        foo = self.mydict['hello']
+        self.assertEquals(self.cache.get.call_count, 0)
+        self.assertEquals(self.cache.set.call_count, 0)
 
 
 class CachedDictTest(TestCase):
@@ -256,7 +264,8 @@ class CachedDictTest(TestCase):
         self.mydict = CachedDict(timeout=100, cache=self.cache)
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
-    @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=True))
+    @mock.patch('modeldict.base.CachedDict.is_local_expired', mock.Mock(return_value=True))
+    @mock.patch('modeldict.base.CachedDict.is_global_expired', mock.Mock(return_value=False))
     def test_expired_does_update_data(self, _update_cache_data):
         self.mydict._cache = {}
         self.mydict._last_updated = time.time()
@@ -265,7 +274,8 @@ class CachedDictTest(TestCase):
         self.assertFalse(_update_cache_data.called)
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
-    @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=False))
+    @mock.patch('modeldict.base.CachedDict.is_local_expired', mock.Mock(return_value=False))
+    @mock.patch('modeldict.base.CachedDict.is_global_expired', mock.Mock(return_value=True))
     def test_reset_does_expire(self, _update_cache_data):
         self.mydict._cache = {}
         self.mydict._last_updated = time.time()
@@ -274,7 +284,8 @@ class CachedDictTest(TestCase):
         _update_cache_data.assert_called_once_with()
 
     @mock.patch('modeldict.base.CachedDict._update_cache_data')
-    @mock.patch('modeldict.base.CachedDict.is_expired', mock.Mock(return_value=False))
+    @mock.patch('modeldict.base.CachedDict.is_local_expired', mock.Mock(return_value=False))
+    @mock.patch('modeldict.base.CachedDict.is_global_expired', mock.Mock(return_value=True))
     def test_does_not_expire_by_default(self, _update_cache_data):
         self.mydict._cache = {}
         self.mydict._last_updated = time.time()
@@ -284,12 +295,12 @@ class CachedDictTest(TestCase):
 
     def test_is_expired_missing_last_updated(self):
         self.mydict._last_updated = None
-        self.assertTrue(self.mydict.is_expired())
+        self.assertTrue(self.mydict.is_local_expired())
         self.assertFalse(self.cache.get.called)
 
     def test_is_expired_last_updated_beyond_timeout(self):
         self.mydict._last_updated = time.time() - 101
-        self.assertTrue(self.mydict.is_expired())
+        self.assertTrue(self.mydict.is_local_expired())
 
     def test_is_expired_within_bounds(self):
         self.mydict._last_updated = time.time()
@@ -299,7 +310,7 @@ class CachedDictTest(TestCase):
         self.mydict._last_updated = time.time() - 101
         self.cache.get.return_value = self.mydict._last_updated
 
-        result = self.mydict.is_expired()
+        result = self.mydict.is_global_expired()
 
         self.cache.get.assert_called_once_with(self.mydict.last_updated_cache_key)
         self.assertFalse(result)
@@ -309,7 +320,7 @@ class CachedDictTest(TestCase):
         self.mydict._last_updated = time.time() - 101
         self.cache.get.return_value = time.time()
 
-        result = self.mydict.is_expired()
+        result = self.mydict.is_global_expired()
 
         self.cache.get.assert_called_once_with(self.mydict.last_updated_cache_key)
         self.assertTrue(result)

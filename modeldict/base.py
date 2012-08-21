@@ -89,7 +89,7 @@ class CachedDict(object):
     def get_default(self, key):
         return NoValue
 
-    def is_expired(self):
+    def is_local_expired(self):
         """
         Returns ``True`` if the in-memory cache has expired (based on
         the cached last_updated value).
@@ -99,14 +99,15 @@ class CachedDict(object):
             return True
 
         # We bail early to avoid hammering the last_updated cache
-        if time.time() < proc_last_updated + self.timeout:
-            return False
+        if time.time() > proc_last_updated + self.timeout:
+            return True
 
+    def is_global_expired(self):
         cache_last_updated = self.cache.get(self.last_updated_cache_key)
         if not cache_last_updated:
             return True
 
-        if cache_last_updated > proc_last_updated:
+        if cache_last_updated > self._last_updated:
             return True
 
         return False
@@ -125,14 +126,30 @@ class CachedDict(object):
         self._last_updated = None
 
     def _populate(self, reset=False):
+        """
+        Ensures the cache is populated and still valid.
+
+        The cache is checked when:
+
+        - The local timeout has been reached
+        - The local cache is not set
+
+        The cache is invalid when:
+
+        - The global cache has expired (via last_updated_cache_key)
+        """
         if reset:
             self._cache = None
-        elif self.is_expired():
-            # pull it down from the cache if its expired
-            self._cache = self.cache.get(self.cache_key)
-            if self._cache is not None:
-                self._last_updated = int(time.time())
-                self.cache.set(self.last_updated_cache_key, self._last_updated)
+        elif self.is_local_expired():
+            now = int(time.time())
+            # If the cache is expired globally, or local cache isnt present
+            if self.is_global_expired() or self._cache is None:
+                # It's important that we prevent other processes from being
+                # required to pull from the cache if they just updated
+                # and it hasnt changed
+                self.cache.set(self.last_updated_cache_key, now)
+                self._cache = self.cache.get(self.cache_key)
+            self._last_updated = now
 
         if self._cache is None:
             self._update_cache_data()
@@ -141,6 +158,7 @@ class CachedDict(object):
     def _update_cache_data(self):
         self._cache = self.get_cache_data()
         self._last_updated = int(time.time())
+        # We only set last_updated_cache_key when we know the cache is current
         self.cache.set(self.cache_key, self._cache)
         self.cache.set(self.last_updated_cache_key, self._last_updated)
 
