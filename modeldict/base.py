@@ -105,8 +105,10 @@ class CachedDict(object):
 
     def has_global_changed(self):
         """
-        Returns ``True`` if the global cache has expired (based on
+        Returns ``True`` if the global cache has changed (based on
         the last_updated_cache_key value).
+
+        A return value of ``None`` signifies that no data was available.
         """
         cache_last_updated = self.cache.get(self.last_updated_cache_key)
         if not cache_last_updated:
