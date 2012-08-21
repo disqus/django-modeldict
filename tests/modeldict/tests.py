@@ -239,7 +239,7 @@ class CacheIntegrationTest(TestCase):
         self.assertEquals(self.cache.get.call_count, 0)
         self.assertEquals(self.cache.set.call_count, 0)
 
-    def test_switch_access_with_expired_cache(self):
+    def test_switch_access_with_expired_local_cache(self):
         self.mydict['hello'] = 'foo'
         self.mydict._last_updated = None
         self.cache.reset_mock()
