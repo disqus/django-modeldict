@@ -184,6 +184,6 @@ class CachedDict(object):
         raise NotImplementedError
 
     def _cleanup(self, *args, **kwargs):
-        # We _last_updated to a false value to ensure we hit the last_updated cache
+        # We set _last_updated to a false value to ensure we hit the last_updated cache
         # on the next request
         self._last_updated = None
