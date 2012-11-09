@@ -55,8 +55,8 @@ class ModelDict(CachedDict):
         self.instances = instances
         self.auto_create = auto_create
 
-        self.cache_key = '%s:%s:%s' % (cls_name, model_name, self.key)
-        self.last_updated_cache_key = '%s.last_updated:%s:%s' % (cls_name, model_name, self.key)
+        self.remote_cache_key = '%s:%s:%s' % (cls_name, model_name, self.key)
+        self.remote_cache_last_updated_key = '%s.last_updated:%s:%s' % (cls_name, model_name, self.key)
 
         request_finished.connect(self._cleanup)
         post_save.connect(self._post_save, sender=model)

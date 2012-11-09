@@ -21,20 +21,20 @@ class RedisDict(CachedDict):
         self.keyspace = keyspace
         self.conn = connection
 
-        self.cache_key = 'RedisDict:%s' % (keyspace,)
-        self.last_updated_cache_key = 'RedisDict.last_updated:%s' % (keyspace,)
+        self.remote_cache_key = 'RedisDict:%s' % (keyspace,)
+        self.remote_cache_last_updated_key = 'RedisDict.last_updated:%s' % (keyspace,)
 
         request_finished.connect(self._cleanup)
 
     def __setitem__(self, key, value):
         self.conn.hset(self.keyspace, key, value)
-        if value != self._cache.get(key):
-            self._cache[key] = value
+        if value != self._local_cache.get(key):
+            self._local_cache[key] = value
         self._populate(reset=True)
 
     def __delitem__(self, key):
         self.conn.hdel(self.keyspace, key)
-        self._cache.pop(key)
+        self._local_cache.pop(key)
         self._populate(reset=True)
 
     def _get_cache_data(self):
