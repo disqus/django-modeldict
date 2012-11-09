@@ -10,6 +10,8 @@ class CachedDict(object):
         cls_name = type(self).__name__
 
         self._local_cache = None
+        self._local_last_updated = None
+
         self._last_checked_for_remote_changes = None
         self.timeout = timeout
 
@@ -98,29 +100,36 @@ class CachedDict(object):
 
     def local_cache_has_expired(self):
         """
-        Returns ``True`` if the in-memory cache has expired (based on
-        the cached _last_checked_for_remote_changes value).
+        Returns ``True`` if the in-memory cache has expired.
         """
-        proc_last_updated = self._last_checked_for_remote_changes
+        if not self._last_checked_for_remote_changes:
+            return True  # Never checked before
 
-        if not proc_last_updated:
-            return True
+        recheck_at = self._last_checked_for_remote_changes + self.timeout
+        return time.time() > recheck_at
 
-        return time.time() > proc_last_updated + self.timeout
-
-    def remote_has_changed(self):
+    def local_cache_is_invalid(self):
         """
-        Returns ``True`` if the global cache has changed (based on
-        the remote_cache_last_updated_key value).
+        Returns ``True`` if the local cache is invalid and needs to be
+        refreshed with data from the remote cache.
 
         A return value of ``None`` signifies that no data was available.
         """
-        cache_last_updated = self.remote_cache.get(self.remote_cache_last_updated_key)
+        # If the local_cache is empty, avoid hitting memcache entirely
+        if self._local_cache is None:
+            return True
 
-        if not cache_last_updated:
-            return None
+        remote_last_updated = self.remote_cache.get(
+            self.remote_cache_last_updated_key
+        )
 
-        return int(cache_last_updated) > self._last_checked_for_remote_changes
+        if not remote_last_updated:
+            # TODO: I don't like how we're overloading the return value here for
+            # this method.  It would be better to have a separate method or
+            # @property that is the remote last_updated value.
+            return None  # Never been updated
+
+        return int(remote_last_updated) > self._local_last_updated
 
     def get_cache_data(self):
         """
@@ -133,6 +142,7 @@ class CachedDict(object):
         Clears the in-process cache.
         """
         self._local_cache = None
+        self._local_last_updated = None
         self._last_checked_for_remote_changes = None
 
     def _populate(self, reset=False):
@@ -148,47 +158,61 @@ class CachedDict(object):
 
         - The global cache has expired (via remote_cache_last_updated_key)
         """
+        now = int(time.time())
+
+        # If asked to reset, then simply set local cache to None
         if reset:
             self._local_cache = None
+        # Otherwise, if the local cache has expired, we need to go check with
+        # our remote last_updated value to see if the dict values have changed.
         elif self.local_cache_has_expired():
-            now = int(time.time())
 
-            # Avoid hitting memcache if we dont have a local cache
-            if self._local_cache is None:
-                global_changed = True
-            else:
-                global_changed = self.remote_has_changed()
+            local_cache_is_invalid = self.local_cache_is_invalid()
 
-            # If the cache is expired globally, or local cache isnt present
-            if global_changed or self._local_cache is None:
-                # The value may or may not exist in the cache
+            # If local_cache_is_invalid  is None, that means that there was no
+            # data present, so we assume we need to add the key to cache.
+            if local_cache_is_invalid is None:
+                self.remote_cache.add(self.remote_cache_last_updated_key, now)
+
+            # Now, if the remote has changed OR it was None in the first place,
+            # pull in the values from the remote cache and set it to the
+            # local_cache
+            if local_cache_is_invalid or local_cache_is_invalid is None:
                 self._local_cache = self.remote_cache.get(self.remote_cache_key)
 
-                # If for some reason remote_cache_last_updated_key was None (but the cache key wasnt)
-                # we should force the key to exist to prevent continuous calls
-                if global_changed is None and self._local_cache is not None:
-                    self.remote_cache.add(self.remote_cache_last_updated_key, now)
+            # No matter what, we've updated from remote, so mark ourselves as
+            # such so that we won't expire until the next timeout
+            self._local_last_updated = now
 
-            self._last_checked_for_remote_changes = now
-
+        # Update from cache if local_cache is still empty
         if self._local_cache is None:
             self._update_cache_data()
+
+        # No matter what happened, we last checked for remote changes just now
+        self._last_checked_for_remote_changes = now
 
         return self._local_cache
 
     def _update_cache_data(self):
         self._local_cache = self.get_cache_data()
-        self._last_checked_for_remote_changes = int(time.time())
-        # We only set remote_cache_last_updated_key when we know the cache is current
-        # because setting this will force all clients to invalidate their cached
-        # data if it's newer
+
+        now = int(time.time())
+        self._local_last_updated = now
+        self._last_checked_for_remote_changes = now
+
+        # We only set remote_cache_last_updated_key when we know the cache is
+        # current because setting this will force all clients to invalidate
+        # their cached data if it's newer
         self.remote_cache.set(self.remote_cache_key, self._local_cache)
-        self.remote_cache.set(self.remote_cache_last_updated_key, self._last_checked_for_remote_changes)
+        self.remote_cache.set(
+            self.remote_cache_last_updated_key,
+            self._last_checked_for_remote_changes
+        )
 
     def _get_cache_data(self):
         raise NotImplementedError
 
     def _cleanup(self, *args, **kwargs):
-        # We set _last_updated to a false value to ensure we hit the last_updated cache
-        # on the next request
+        # We set _last_updated to a false value to ensure we hit the
+        # last_updated cache on the next request
         self._last_checked_for_remote_changes = None
