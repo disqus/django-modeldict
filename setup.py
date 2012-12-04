@@ -16,7 +16,7 @@ tests_require = [
 
 setup(
     name='django-modeldict',
-    version='1.4.0',
+    version='1.4.1',
     author='DISQUS',
     author_email='opensource@disqus.com',
     url='http://github.com/disqus/django-modeldict/',
