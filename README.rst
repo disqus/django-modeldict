@@ -2,7 +2,7 @@
 NOTICE: Deprecated
 ------------------
 
-This project is deprecated and no longer actively maintained by `Disqus <https://disqus.com/>`_. However there is a fork being maintained by YPlan at `github.com/YPlan/django-modeldict <https://github.com/YPlan/django-modeldict>`_.
+This project is deprecated and no longer actively maintained by `Disqus <https://disqus.com/>`_. However there is a fork being maintained by YPlan at `github.com/YPlan/django-modeldict <https://github.com/YPlan/django-modeldict>`_ and a similar project by Disqus at `github.com/disqus/durabledict <https://github.com/disqus/durabledict/>`_.
 
 ----------------
 django-modeldict
